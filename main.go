@@ -4,8 +4,10 @@ import (
 	"github.com/astaxie/beego/logs"
 	"github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/go-grpc-middleware/auth"
+	"github.com/grpc-ecosystem/go-grpc-middleware/validator"
 	"google.golang.org/grpc"
 	"net"
+	_ "net/http/pprof"
 	"xblog/config"
 	_ "xblog/dao"
 	"xblog/middleware"
@@ -13,7 +15,6 @@ import (
 	pb "xblog/rpc"
 	"xblog/service"
 )
-
 
 func main() {
 	logs.SetLogger("console")
@@ -26,13 +27,16 @@ func main() {
 	s := grpc.NewServer(
 		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(
 			grpc_auth.StreamServerInterceptor(middleware.JwtAuth),
+			grpc_validator.StreamServerInterceptor(),
 		)),
 		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
 			grpc_auth.UnaryServerInterceptor(middleware.JwtAuth),
+			grpc_validator.UnaryServerInterceptor(),
+			//grpc.UnaryServerInterceptor(middleware.ValidMiddleware),
 		)),
-		)
+	)
 	token := service.CreateJwtToken()
-	logs.Info("ZXXZC",token)
+	logs.Info("ZXXZC", token)
 	// 将 UserInfoService 注册到 gRPC
 	// 注意第二个参数 UserInfoServiceServer 是接口类型的变量
 	// 需要取地址传参
