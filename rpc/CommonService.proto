@@ -1,0 +1,104 @@
+syntax = "proto3";
+package xblog;
+
+option go_package = "rpc;xblog";
+import "github.com/mwitkow/go-proto-validators/validator.proto";
+
+
+option php_namespace = "App\\Rpc";
+
+//////// 公共RPC服务接口 /////////
+service CommonService {
+    //注册
+    rpc Register (RegisterRequest) returns (RegisterResponse);
+    //登录
+    rpc Login (LoginRequest) returns (LoginResponse);
+    //创建文章
+    rpc CreatePost(CreatePostRequest) returns (CreatePostResponse);
+    //修改文章
+    rpc UpdatePost(UpdatePostRequest) returns (CommonResponse);
+    //文章列表
+    rpc PostList(PostListRequest) returns (PostListResponse);
+    //删除文章
+    rpc DeletePost(DeletePostRequest)returns(CommonResponse);
+
+}
+
+//common message
+message CommonResponse{
+    int32 result = 1;
+}
+
+
+message RegisterRequest{
+    string email = 1 [(validator.field) = {msg_exists: true, regex: "^[a-zA-Z0-9_-]+@[a-zA-Z0-9_-]+(.[a-zA-Z0-9_-]+)+$"}];
+    string username = 2 [(validator.field) = {msg_exists: true, length_gt: 3, length_lt: 21}];
+    string password = 3 [(validator.field) = {msg_exists: true, length_gt: 7, length_lt: 31}];
+    string password_confirmed = 4 [(validator.field) = {msg_exists: true, length_gt: 7, length_lt: 31}];
+    string nickname = 5;
+}
+message RegisterResponse{
+    uint32 uid = 1;
+}
+
+message LoginRequest {
+    string username = 1;
+    string password = 2;
+}
+message LoginResponse {
+    string token = 1;
+    User userInfo = 2;
+}
+
+message CreatePostRequest{
+    uint32 AuthorId = 2 [(validator.field) = {msg_exists: true, int_gt: 0}];
+    string Title = 3 [(validator.field) = {msg_exists: true, length_gt: 3, length_lt: 200}];
+    string Content = 5 [(validator.field) = {msg_exists: true}];
+    int32 CategoryId = 7 [(validator.field) = {msg_exists: true}];
+    repeated Tag TagArray = 8;
+}
+message CreatePostResponse{
+    uint32 PostId = 1;
+}
+message UpdatePostRequest{
+    uint32 Id = 1 [(validator.field) = {msg_exists: true, int_gt: 0}];
+    string Title = 3 [(validator.field) = {msg_exists: true, length_gt: 3, length_lt: 200}];
+    string Content = 5 [(validator.field) = {msg_exists: true}];
+    int32 CategoryId = 7 [(validator.field) = {msg_exists: true}];
+    repeated Tag TagArray = 8;
+}
+message PostListRequest{
+    uint32 Limit = 1;
+    uint32 Page = 2;
+}
+message PostListResponse{
+    uint32 Count = 1;
+    uint32 Page = 2;
+    repeated PostDetail List = 3;
+}
+message DeletePostRequest{
+    uint32 Id = 1 [(validator.field) = {msg_exists: true, int_gt: 0}];
+}
+message PostDetail{
+    uint32 Id = 1;
+    User Author = 2;
+    string Title = 3;
+    oneof ContentOrDigest {
+        string Digest = 4;
+        string Content = 5;
+    }
+    repeated Tag TagArray = 8;
+}
+message User{
+    uint32 Id = 1;
+    string Username = 2;
+    string Nickname = 3;
+    string email =4;
+}
+
+message Tag{
+    uint32 Id = 1;
+    string Name = 2;
+    string Alias = 3;
+}
+
