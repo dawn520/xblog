@@ -2,9 +2,9 @@ package main
 
 import (
 	"github.com/astaxie/beego/logs"
-	"github.com/grpc-ecosystem/go-grpc-middleware"
-	"github.com/grpc-ecosystem/go-grpc-middleware/auth"
-	"github.com/grpc-ecosystem/go-grpc-middleware/validator"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
+	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/validator"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"net"
@@ -26,6 +26,8 @@ func main() {
 	}
 	logs.Info("xblog service is starting, listening %s\n", port)
 	tsl := config.GetBool("app.tsl")
+
+	var opts []grpc.ServerOption
 	var credits credentials.TransportCredentials
 	if true == tsl {
 		// 从输入证书文件和密钥文件为服务端构造TLS凭证
@@ -37,7 +39,7 @@ func main() {
 		credits = nil
 	}
 
-	s := grpc.NewServer(
+	opts = []grpc.ServerOption{
 		grpc.Creds(credits),
 		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(
 			grpc_auth.StreamServerInterceptor(middleware.JwtAuth),
@@ -48,10 +50,13 @@ func main() {
 			grpc_validator.UnaryServerInterceptor(),
 			//grpc.UnaryServerInterceptor(middleware.ValidMiddleware),
 		)),
-	)
+	}
+
+	grpcServer := grpc.NewServer(opts...)
+
 	// 将 UserInfoService 注册到 gRPC
 	// 注意第二个参数 UserInfoServiceServer 是接口类型的变量
 	// 需要取地址传参
-	pb.RegisterCommonServiceServer(s, &service.Service{})
-	s.Serve(l)
+	pb.RegisterCommonServiceServer(grpcServer, &service.Service{})
+	grpcServer.Serve(l)
 }
